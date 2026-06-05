@@ -185,6 +185,42 @@ https://example-backend.com/api
 https://<username>.github.io/<repository>/
 ```
 
+## Развёртывание backend на Render
+
+Backend можно разместить на Render как Docker Web Service. Для базы данных используется Render PostgreSQL.
+
+Порядок развёртывания:
+
+1. Создать PostgreSQL database в Render.
+2. Создать Web Service из GitHub-репозитория.
+3. Выбрать runtime `Docker`.
+4. Указать Dockerfile path: `backend/Dockerfile`.
+5. Указать Docker context: `backend`.
+6. Добавить переменные окружения:
+
+```text
+APP_ENV=production
+DATABASE_URL=<Internal Database URL из Render PostgreSQL>
+JWT_SECRET=<длинная случайная строка>
+ALLOW_ORIGINS=https://<username>.github.io/<repository>
+```
+
+Переменную `PORT` Render задаёт автоматически. Backend также поддерживает `SERVER_PORT`, но на Render достаточно стандартного `PORT`.
+
+Redis в проекте используется как дополнительный сервис. Если Redis на Render не настроен, backend продолжит работать без него и выведет предупреждение в лог. При наличии Render Key Value можно добавить:
+
+```text
+REDIS_ADDR=<redis-host>:<redis-port>
+```
+
+После деплоя публичный адрес backend будет вида:
+
+```text
+https://<service-name>.onrender.com/api
+```
+
+Этот адрес нужно указать в `VITE_API_URL` для frontend на GitHub Pages.
+
 ## Структура проекта
 
 ```text

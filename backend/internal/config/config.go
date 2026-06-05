@@ -19,7 +19,7 @@ type Config struct {
 func Load() Config {
 	return Config{
 		AppEnv:       getEnv("APP_ENV", "development"),
-		ServerPort:   getEnv("SERVER_PORT", "8080"),
+		ServerPort:   getEnv("SERVER_PORT", getEnv("PORT", "8080")),
 		DatabaseURL:  getEnv("DATABASE_URL", "postgres://teamfinder:teamfinder@postgres:5432/teamfinder?sslmode=disable"),
 		RedisAddr:    getEnv("REDIS_ADDR", "redis:6379"),
 		JWTSecret:    getEnv("JWT_SECRET", "change-me-in-production"),
