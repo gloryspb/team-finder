@@ -1,75 +1,115 @@
 # Team Finder
 
-Учебный full-stack проект по теме «Платформа для поиска команд в онлайн-игры». Приложение позволяет регистрироваться, вести профиль игрока, создавать объявления о поиске команды, фильтровать объявления и отправлять заявки.
+Team Finder - учебный full-stack проект для курсовой работы на тему «Платформа для поиска команд в онлайн-игры».
 
-## Стек
+В проекте реализована платформа, где игрок может зарегистрироваться, заполнить профиль, создать объявление о поиске команды, найти подходящие объявления через фильтры и отправить заявку на вступление. Владелец объявления может просматривать входящие заявки и принимать или отклонять их.
 
-- Backend: Go 1.22+, Echo, REST API, JWT, bcrypt.
-- Database: PostgreSQL, миграции Goose.
-- Service state/cache: Redis подключается при старте.
+## Цель проекта
+
+Цель проекта - разработать веб-приложение с клиент-серверной архитектурой, REST API, авторизацией пользователей и хранением данных в реляционной базе данных. Проект сделан как учебный пример full-stack приложения с разделением backend, frontend, базы данных, миграций и тестов.
+
+## Используемый стек
+
+- Backend: Go 1.22+, Echo.
+- API: REST + JSON.
+- Auth: JWT + bcrypt.
+- Database: PostgreSQL.
+- Migrations: Goose.
+- Cache/service state: Redis.
 - Frontend: React, TypeScript, Vite, React Router.
-- Dev/deploy: Docker и Docker Compose.
-- Тесты: Go unit tests и fuzz tests для `AuthService` и `ListingService`.
+- Development/deployment: Docker, Docker Compose.
+- Tests: Go unit tests и fuzz tests для `AuthService` и `ListingService`.
 
-## Запуск
+## Основная функциональность
+
+- регистрация и вход пользователя;
+- хранение JWT в `localStorage`;
+- получение текущего пользователя и профиля;
+- редактирование профиля игрока;
+- список игр с режимами и ролями;
+- создание объявлений о поиске команды;
+- фильтрация объявлений по игре, роли, региону, режиму, статусу и поисковой строке;
+- просмотр подробностей объявления;
+- отправка заявки на объявление;
+- запрет заявки на собственное объявление;
+- запрет повторной заявки;
+- просмотр входящих и исходящих заявок;
+- принятие и отклонение заявок владельцем объявления;
+- закрытие объявления.
+
+## Запуск через Docker
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-После запуска:
+После запуска доступны:
 
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8080/api
-- Healthcheck: http://localhost:8080/health
-- PostgreSQL: localhost:5432
-- Redis: localhost:6379
+- frontend: `http://localhost:5173`;
+- backend API: `http://localhost:8080/api`;
+- healthcheck: `http://localhost:8080/health`;
+- PostgreSQL: `localhost:5432`;
+- Redis: `localhost:6379`.
 
-Backend применяет Goose-миграции автоматически при старте и добавляет сидовые игры: Dota 2, Counter-Strike 2, Valorant, League of Legends, Overwatch 2, Apex Legends.
+Backend автоматически применяет Goose-миграции при старте. Через миграцию также добавляются сидовые игры: Dota 2, Counter-Strike 2, Valorant, League of Legends, Overwatch 2 и Apex Legends.
 
-## Развёртывание frontend на GitHub Pages
+## Запуск без Docker
 
-GitHub Pages разворачивает только статический frontend. Backend Go, PostgreSQL и Redis нужно разместить отдельно, например на Render, Railway, Fly.io или VPS. После публикации backend укажите его URL в переменной репозитория `VITE_API_URL`, например `https://your-api.example.com/api`.
+Для запуска без Docker нужен локальный PostgreSQL. Redis необязателен: если Redis недоступен, backend продолжает работу и выводит предупреждение в лог.
 
-Шаги:
+Backend:
 
-1. Создайте репозиторий на GitHub и отправьте код в ветку `main`.
-2. В настройках репозитория откройте `Settings -> Pages`.
-3. В `Build and deployment` выберите источник `GitHub Actions`.
-4. В `Settings -> Secrets and variables -> Actions -> Variables` добавьте `VITE_API_URL`.
-5. Сделайте push в `main`. Workflow `.github/workflows/deploy-frontend.yml` соберёт `frontend` и опубликует сайт.
+```powershell
+cd backend
+$env:DATABASE_URL="postgres://teamfinder:teamfinder@localhost:5432/teamfinder?sslmode=disable"
+$env:REDIS_ADDR="localhost:6379"
+$env:JWT_SECRET="dev-secret-change-me"
+$env:ALLOW_ORIGINS="http://localhost:5173"
+go run ./cmd/api
+```
 
-Адрес сайта будет вида `https://<username>.github.io/<repository>/`.
+Frontend:
+
+```powershell
+cd frontend
+npm install
+$env:VITE_API_URL="http://localhost:8080/api"
+npm run dev
+```
 
 ## Миграции
 
-Автоматически в Docker:
+В Docker миграции применяются автоматически при запуске backend.
 
-```bash
-docker compose up --build
-```
-
-Вручную из папки `backend`, если установлен `goose`:
+Ручной запуск миграций из папки `backend`:
 
 ```bash
 goose -dir migrations postgres "postgres://teamfinder:teamfinder@localhost:5432/teamfinder?sslmode=disable" up
 goose -dir migrations postgres "postgres://teamfinder:teamfinder@localhost:5432/teamfinder?sslmode=disable" down
 ```
 
-## Тесты
+## Тестирование
+
+Обычные unit-тесты:
 
 ```bash
 cd backend
 go test ./...
 ```
 
-Fuzz-тесты запускаются стандартным Go:
+Fuzz-тестирование AuthService:
 
 ```bash
-go test ./internal/services -fuzz=FuzzRegister
-go test ./internal/services -fuzz=FuzzCreateListing
-go test ./internal/services -fuzz=FuzzApplicationStatus
+go test ./internal/services -run=^$ -fuzz=FuzzRegister -fuzztime=10s
+go test ./internal/services -run=^$ -fuzz=FuzzLogin -fuzztime=10s
+```
+
+Fuzz-тестирование ListingService:
+
+```bash
+go test ./internal/services -run=^$ -fuzz=FuzzCreateListing -fuzztime=10s
+go test ./internal/services -run=^$ -fuzz=FuzzApplicationStatus -fuzztime=10s
 ```
 
 ## API endpoints
@@ -85,9 +125,9 @@ Auth:
 Games:
 
 - `GET /api/games`
-- `POST /api/games` admin
-- `PUT /api/games/:id` admin
-- `DELETE /api/games/:id` admin
+- `POST /api/games` - только admin
+- `PUT /api/games/:id` - только admin
+- `DELETE /api/games/:id` - только admin
 
 Listings:
 
@@ -105,23 +145,47 @@ Applications:
 - `GET /api/applications/incoming`
 - `PATCH /api/applications/:id/status`
 
-Ошибки возвращаются в формате:
+Ошибки API возвращаются в формате:
 
 ```json
 {"error":"message"}
 ```
 
-## Тестовые сценарии
+## Сценарии проверки
 
-1. Зарегистрировать пользователя A и создать объявление.
-2. Выйти, зарегистрировать пользователя B.
-3. Найти объявление пользователя A через фильтры игры, роли, региона или режима.
-4. Открыть подробности объявления и отправить заявку от пользователя B.
-5. Войти пользователем A, открыть «Профиль и заявки».
-6. Принять или отклонить входящую заявку.
-7. Закрыть объявление и убедиться, что оно сменило статус.
+1. Зарегистрировать первого пользователя.
+2. Заполнить или изменить профиль игрока.
+3. Создать объявление о поиске команды.
+4. Зарегистрировать второго пользователя.
+5. Найти объявление первого пользователя через фильтры.
+6. Отправить заявку на объявление от второго пользователя.
+7. Войти под первым пользователем и открыть входящие заявки.
+8. Принять или отклонить заявку.
+9. Закрыть объявление и проверить изменение статуса.
 
-## Структура
+## Развёртывание frontend на GitHub Pages
+
+GitHub Pages подходит только для статического frontend. Backend на Go, PostgreSQL и Redis должны быть размещены отдельно, например на Render, Railway, Fly.io или VPS.
+
+Для сборки frontend в GitHub Actions используется workflow:
+
+```text
+.github/workflows/deploy-frontend.yml
+```
+
+В переменной репозитория `VITE_API_URL` указывается публичный адрес backend API, например:
+
+```text
+https://example-backend.com/api
+```
+
+После публикации адрес frontend будет иметь вид:
+
+```text
+https://<username>.github.io/<repository>/
+```
+
+## Структура проекта
 
 ```text
 /backend
