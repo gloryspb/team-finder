@@ -1,6 +1,6 @@
 import type { Application, ApplicationDetails, AuthResponse, Game, Listing, ListingDetails, PlayerProfile, User } from "../types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:8080/api" : "/api");
 const TOKEN_KEY = "team_finder_token";
 
 export function getToken(): string | null {
